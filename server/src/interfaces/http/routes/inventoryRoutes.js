@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { inventoryController } from "../../controllers/inventoryController.js";
+import { uploadInventory } from "../../controllers/inventoryController.js";
 
-export function inventoryRoutes(container) {
+export function inventoryRoutes(_container) {
   const router = Router();
-  router.post("/upload", inventoryController.upload(container));
+  router.post("/upload", uploadInventory);
   return router;
 }

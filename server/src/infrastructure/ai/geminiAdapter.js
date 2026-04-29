@@ -5,11 +5,11 @@ export class GeminiAdapter extends IAIService {
   constructor(apiKey) {
     super();
     this.genAI = new GoogleGenerativeAI(apiKey);
-    // We use gemini-1.5-flash for speed and lower cost in a high-volume market setting
-    this.model = this.genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+    // Use a stable model id; "-latest" aliases may not exist on all API versions.
+    this.model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
       // Force the model to output valid JSON
-      generationConfig: { responseMimeType: "application/json" }
+      generationConfig: { responseMimeType: "application/json" },
     });
   }
 

@@ -17,49 +17,33 @@ export class SupabaseInventoryRepository {
     if (error) throw new Error(`Supabase Save Error: ${error.message}`);
     return data;
   }
-
-  async findByItemName(name) {
-    // Basic text search for Merkato items
-    const { data, error } = await this.supabase
-      .from('inventory')
-      .select('*, wholesalers(name, tera, shop_number)')
-      .ilike('item_name', `%${name}%`)
-      .eq('is_available', true);
-
-    if (error) throw new Error(`Supabase Query Error: ${error.message}`);
-    return data;
-  }
-  async searchInventory({ product, maxPrice, teraPreference }) {
+  async search({ product, maxPrice, teraPreference }) {
     let query = this.supabase
       .from('inventory')
       .select(`
-        item_name,
-        unit_price,
-        quantity,
-        wholesalers (
-          name,
-          tera,
-          shop_number
-        )
+        *,
+        wholesalers (name, tera, shop_number)
       `)
-      .ilike('item_name', `%${product}%`) // Search for product name
+      .ilike('item_name', `%${product}%`)
       .eq('is_available', true);
 
-    // Apply optional filters if Gemini extracted them
     if (maxPrice) {
       query = query.lte('unit_price', maxPrice);
     }
 
+    // If the buyer prefers a specific Tera (e.g. Shema Tera)
     if (teraPreference) {
-      // Joins can be filtered using the dot notation in Supabase
-      query = query.eq('wholesalers.tera', teraPreference);
+      // We filter based on the joined wholesalers table
+      query = query.filter('wholesalers.tera', 'ilike', `%${teraPreference}%`);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query.order('unit_price', { ascending: true });
 
-    if (error) throw new Error(`Search failed: ${error.message}`);
-    
-    // Filter out results where the join failed (e.g., location didn't match)
-    return data.filter(item => item.wholesalers !== null);
+    if (error) {
+      console.error("Supabase Query Error:", error);
+      return []; // Return empty array so .length doesn't crash
+    }
+
+    return data || [];
   }
 }

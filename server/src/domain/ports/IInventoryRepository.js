@@ -4,19 +4,11 @@
  */
 
 export class IInventoryRepository {
-  async save(inventory) {
-    throw new Error('Method not implemented');
+  async save(items) {
+    throw new Error("Method 'save()' must be implemented.");
   }
 
-  async search({ product, maxPrice, teraPreference, quantity }) {
-    throw new Error('Method not implemented');
-  }
-
-  async getRecentUploads(hoursBack = 24) {
-    throw new Error('Method not implemented');
-  }
-
-  async getById(id) {
-    throw new Error('Method not implemented');
+  async search(filters) {
+    throw new Error("Method 'search()' must be implemented.");
   }
 }

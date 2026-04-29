@@ -2,6 +2,9 @@
     "name": "merkato-ai",
     "version": "1.0.0",
     "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
     "description": "MerkatoAI - Wholesale Inventory Concierge",
     "scripts": {
       "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",

@@ -11,9 +11,8 @@ export class HandleBuyerQuery {
   /**
    * Executes the search logic
    * @param {string} rawMessage - The text sent by the buyer on Telegram
-   * @param {string} buyerId - The unique ID of the buyer (from Telegram chat ID)
    */
-  async execute(rawMessage, buyerId) {
+  async execute(rawMessage) {
     if (!rawMessage) throw new Error("Empty message received.");
 
     // 1. Use the AI Port to extract Intent (Product, Price, Location)
@@ -22,7 +21,7 @@ export class HandleBuyerQuery {
 
     // 2. Query the Repository Port based on extracted intent
     // We pass the intent object to a repository method that handles filtering
-    const searchResults = await this.inventoryRepo.searchInventory({
+    const searchResults = await this.inventoryRepo.search({
       product: intent.product,
       maxPrice: intent.maxPrice,
       teraPreference: intent.teraPreference

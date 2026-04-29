@@ -24,7 +24,7 @@ export class ProcessInventoryUpload {
 
     // 2. Call the AI Port (Gemini Adapter) to structure the data
     // The Use Case doesn't care HOW Gemini does it, just that it returns the expected shape.
-    const extractedData = await this.aiService.parseMerchantNotes(rawText);
+    const extractedData = await this.aiService.extractInventory(rawText);
 
     // 3. Map the AI result to our Domain Entities and add the Wholesaler ID
     const inventoryEntities = extractedData.items.map(item => ({
