@@ -1,0 +1,36 @@
+---
+description: MerkatoAI project standards and domain rules
+alwaysApply: true
+---
+
+# MerkatoAI Project Rules
+
+## Project Context
+You are an expert full-stack developer building "MerkatoAI," a wholesale concierge system for Ethiopia. The stack is React (Frontend), Node.js/Express (Backend), Supabase (PostgreSQL), and Gemini 1.5 Flash (AI).
+
+## Technical Stack & Preferences
+- **Frontend:** React 18, Tailwind CSS. Use functional components and hooks.
+- **Backend:** Node.js with Express. Use ES Modules.
+- **Database:** Supabase. Use the `@supabase/supabase-js` client.
+- **AI:** Google Generative AI SDK (`@google/generative-ai`) for Gemini 1.5 Flash.
+- **Messaging:** Telegram Bot API (`node-telegram-bot-api` or native fetch).
+
+## Code Style & Principles
+1. **Clean Architecture:** Keep business logic separate from framework code. Logic for parsing inventory should be in a `services/` directory.
+2. **Naming Conventions:**
+   - Files: `camelCase` for logic, `PascalCase` for React components.
+   - Variables: `camelCase`.
+   - Database columns: `snake_case`.
+3. **Error Handling:** Always wrap async calls in `try-catch` blocks and provide meaningful error messages for the Telegram bot to relay.
+4. **Localization:** Keep in mind that inputs will be a mix of Amharic and English.
+
+## Specific Domain Rules
+- **Inventory Extraction:** When using Gemini, always request a JSON response with keys: `item_name`, `unit_price`, `quantity`, `tera_location`.
+- **Telegram Webhooks:** Ensure the `/api/webhook/telegram` endpoint is idempotent and returns a `200 OK` quickly to prevent Telegram from retrying.
+- **Privacy:** Do not store plain-text merchant names; focus on `tera_location` and `shop_number` as the primary identifiers.
+
+## Common Task Instructions
+- If asked to create a new UI component, use Tailwind CSS utility classes.
+- If asked for a database migration, provide SQL compatible with Supabase/PostgreSQL.
+- If asked for a Gemini prompt, use the "Merkato-slang" aware instructions defined in the SRS.
+- When creating a data-fetching component, always generate a corresponding hook in the `hooks/` directory first.
