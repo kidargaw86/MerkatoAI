@@ -25,16 +25,25 @@ export class ProcessInventoryUpload {
     // 2. Call the AI Port (Gemini Adapter) to structure the data
     // The Use Case doesn't care HOW Gemini does it, just that it returns the expected shape.
     const extractedData = await this.aiService.extractInventory(rawText);
+    const rawItems = Array.isArray(extractedData?.items) ? extractedData.items : [];
 
     // 3. Map the AI result to our Domain Entities and add the Wholesaler ID
-    const inventoryEntities = extractedData.items.map(item => ({
-      wholesaler_id: wholesalerId,
-      item_name: item.item_name,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      unit: item.unit || 'Piece',
-      location_override: item.location || null
-    }));
+    const inventoryEntities = rawItems.map((item) => {
+      const qty = item.quantity != null ? Number(item.quantity) : 1;
+      const price = item.unit_price != null ? Number(item.unit_price) : 0;
+      return {
+        wholesaler_id: wholesalerId,
+        item_name: String(item.item_name ?? "").trim() || "Unnamed item",
+        quantity: Number.isFinite(qty) && qty > 0 ? qty : 1,
+        unit_price: Number.isFinite(price) && price >= 0 ? price : 0,
+        unit: item.unit || "Piece",
+        location_override: item.tera_location ?? item.location ?? item.location_override ?? null
+      };
+    });
+
+    if (!inventoryEntities.length) {
+      return { success: true, count: 0, data: [] };
+    }
 
     // 4. Save to the Repository Port (Supabase Adapter)
     const savedInventory = await this.inventoryRepo.save(inventoryEntities);

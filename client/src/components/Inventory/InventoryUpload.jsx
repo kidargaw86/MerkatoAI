@@ -1,80 +1,136 @@
-import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import api from '../../services/api';
+import React, { useState } from "react";
+import { FileText, Upload } from "lucide-react";
+import { inventoryService } from "../../services/api.js";
 
-const InventoryUpload = () => {
-  const [inputText, setInputText] = useState('');
+const wholesalerId =
+  process.env.REACT_APP_WHOLESALER_ID ||
+  process.env.VITE_WHOLESALER_ID;
+
+export default function InventoryUpload({ onSaved }) {
+  const [inputText, setInputText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleUpload = async () => {
+  const handleExtract = async () => {
     if (!inputText.trim()) return;
-    
+    setErrorMessage("");
     setIsProcessing(true);
     try {
-      // Logic: Send raw text to Gemini-powered backend
-      const response = await api.post('/inventory/extract', { text: inputText });
-      setExtractedData(response.data);
+      const data = await inventoryService.extractInventory(inputText);
+      setExtractedData(data);
     } catch (error) {
       console.error("Extraction failed", error);
+      const apiMessage = error?.response?.data?.error || "";
+      if (apiMessage.toLowerCase().includes("gemini")) {
+        setErrorMessage("Gemini is currently unavailable. Please try again shortly.");
+      } else {
+        setErrorMessage(apiMessage || "Could not process inventory right now.");
+      }
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleConfirmSave = async () => {
+    if (!extractedData?.items?.length) return;
+    if (!wholesalerId) {
+      console.error("Set VITE_WHOLESALER_ID in client/.env");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await inventoryService.saveInventory({
+        items: extractedData.items,
+        wholesalerId
+      });
+      setExtractedData(null);
+      setInputText("");
+      onSaved?.();
+    } catch (error) {
+      console.error("Save failed", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4">Digitize Inventory</h2>
-      
-      {/* Input Section */}
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="mb-4 text-lg font-semibold text-slate-800">Digitize inventory</h2>
+
       <div className="space-y-4">
         <textarea
-          className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-          placeholder="Paste messy notes here... e.g., 500pcs LED 9W @ 75 birr Shema Tera"
+          className="h-32 w-full rounded-lg border border-slate-200 bg-slate-50 p-4 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
+          placeholder="Paste notes… e.g. 500pcs LED 9W @ 75 birr Shema Tera"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
         />
-        
+
         <div className="flex gap-3">
           <button
-            onClick={handleUpload}
+            type="button"
+            onClick={handleExtract}
             disabled={isProcessing}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:bg-blue-400"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 py-2 px-4 font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-blue-400"
           >
             {isProcessing ? (
-              <span className="animate-pulse">Processing with Gemini...</span>
+              <span className="animate-pulse">Processing…</span>
             ) : (
-              <><FileText size={18} /> Process Text</>
+              <>
+                <FileText size={18} /> Process with Gemini
+              </>
             )}
           </button>
-          
-          <button className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
+          <button
+            type="button"
+            className="rounded-lg border border-slate-200 px-4 py-2 text-slate-600 hover:bg-slate-50"
+            title="Image upload can be added later"
+          >
             <Upload size={18} />
           </button>
         </div>
       </div>
 
-      {/* Preview Section (Appears after AI processes) */}
-      {extractedData && (
-        <div className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-          <div className="flex items-center gap-2 text-emerald-700 font-medium mb-3">
-            <CheckCircle size={16} /> AI Extracted Records
-          </div>
+      {errorMessage && (
+        <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {errorMessage}
+        </div>
+      )}
+
+      {extractedData?.items && (
+        <div className="mt-6 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+          <div className="mb-3 font-medium text-emerald-700">Extracted rows (preview)</div>
           <div className="space-y-2">
             {extractedData.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-sm py-2 border-b border-emerald-100 last:border-0">
+              <div
+                key={idx}
+                className="flex justify-between border-b border-emerald-100 py-2 text-sm last:border-0"
+              >
                 <span className="font-semibold text-slate-700">{item.item_name}</span>
-                <span className="text-slate-600">{item.quantity} units @ {item.unit_price} ETB</span>
+                <span className="text-slate-600">
+                  {item.quantity} @ {item.unit_price} ETB
+                </span>
               </div>
             ))}
           </div>
-          <button className="w-full mt-4 bg-emerald-600 text-white py-2 rounded-md hover:bg-emerald-700 transition-colors">
-            Confirm & Save to Supabase
+          <button
+            type="button"
+            onClick={handleConfirmSave}
+            disabled={isSaving || !wholesalerId}
+            className="mt-4 w-full rounded-md bg-emerald-600 py-2 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {isSaving ? "Saving…" : "Confirm & save to Supabase"}
           </button>
+          {!wholesalerId && (
+            <p className="mt-2 text-sm text-amber-600">
+              Add <code className="rounded bg-white px-1">REACT_APP_WHOLESALER_ID</code> (or{" "}
+              <code className="rounded bg-white px-1">VITE_WHOLESALER_ID</code>) to{" "}
+              <code className="rounded bg-white px-1">client/.env</code> (wholesaler UUID).
+            </p>
+          )}
         </div>
       )}
     </div>
   );
-};
-
-export default InventoryUpload;
+}

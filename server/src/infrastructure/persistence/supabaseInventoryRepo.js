@@ -46,4 +46,64 @@ export class SupabaseInventoryRepository {
 
     return data || [];
   }
+
+  async listRecent(limit = 100) {
+    const { data, error } = await this.supabase
+      .from("inventory")
+      .select(
+        `
+        *,
+        wholesalers (name, tera, shop_number)
+      `
+      )
+      .order("id", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Supabase listRecent Error:", error);
+      return [];
+    }
+    return data || [];
+  }
+
+  /**
+   * Counts for dashboard: distinct wholesalers with inventory rows, total items, pending wishlist alerts.
+   */
+  async getDashboardStats() {
+    const { count: itemCount, error: itemErr } = await this.supabase
+      .from("inventory")
+      .select("*", { count: "exact", head: true });
+
+    if (itemErr) {
+      console.error("getDashboardStats items:", itemErr);
+    }
+
+    const { data: wholesalerRows, error: wErr } = await this.supabase
+      .from("inventory")
+      .select("wholesaler_id");
+
+    if (wErr) {
+      console.error("getDashboardStats wholesaler_ids:", wErr);
+    }
+
+    const merchantCount = new Set(
+      (wholesalerRows || []).map((r) => r.wholesaler_id).filter(Boolean)
+    ).size;
+
+    const { count: alertCount, error: aErr } = await this.supabase
+      .from("wishlists")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true)
+      .is("last_notified_at", null);
+
+    if (aErr) {
+      console.error("getDashboardStats wishlists:", aErr);
+    }
+
+    return {
+      merchants: merchantCount,
+      items: itemCount ?? 0,
+      alerts: alertCount ?? 0
+    };
+  }
 }

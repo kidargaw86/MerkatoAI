@@ -15,12 +15,26 @@ export class HandleBuyerQuery {
   async execute(rawMessage) {
     if (!rawMessage) throw new Error("Empty message received.");
 
-    // 1. Use the AI Port to extract Intent (Product, Price, Location)
-    // Your GeminiAdapter.parseBuyerIntent implementation is called here
-    const intent = await this.aiService.parseBuyerIntent(rawMessage);
+    // 1) Parse intent with AI. If AI is unavailable, degrade gracefully to text search.
+    let intent;
+    try {
+      intent = await this.aiService.parseBuyerIntent(rawMessage);
+    } catch (error) {
+      intent = {
+        product: rawMessage.trim(),
+        maxPrice: null,
+        quantity: null,
+        teraPreference: null
+      };
+    }
+    if (!intent?.product || typeof intent.product !== "string") {
+      intent = {
+        ...intent,
+        product: rawMessage.trim()
+      };
+    }
 
-    // 2. Query the Repository Port based on extracted intent
-    // We pass the intent object to a repository method that handles filtering
+    // 2) Query the repository using parsed/fallback intent.
     const searchResults = await this.inventoryRepo.search({
       product: intent.product,
       maxPrice: intent.maxPrice,
@@ -32,8 +46,11 @@ export class HandleBuyerQuery {
       intent,
       results: searchResults,
       totalFound: searchResults.length,
-      // Logic for "No Results": maybe later we trigger the wishlist use case here
-      shouldSuggestWishlist: searchResults.length === 0
+      shouldSuggestWishlist: searchResults.length === 0,
+      suggestionMessage:
+        searchResults.length === 0
+          ? `I couldn't find ${intent.product} right now. Want me to notify you when it arrives in Merkato?`
+          : null
     };
   }
 }

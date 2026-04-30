@@ -1,4 +1,7 @@
 export class IWishlistRepository {
+  async findByBuyerId(_buyerId) {
+    throw new Error("Not implemented");
+  }
   async findAllActive() {
     throw new Error("Not implemented");
   }

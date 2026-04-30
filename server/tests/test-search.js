@@ -5,15 +5,18 @@ const { container } = await import('../src/config/container.js');
 async function runSearchTest() {
     console.log("🔍 Starting Feature Test: Buyer Search...");
 
-    const message = "I'm looking for Samsung chargers under 500 birr";
+    const message = "Samsung";
 
     try {
         const output = await container.handleBuyerQuery.execute(message);
 
         console.log("🤖 AI Intent Extracted:", output.intent);
-        console.log("📦 Results Found:", output.count);
+        console.log("📦 Results Found:", output.totalFound);
+        if (output.shouldSuggestWishlist) {
+            console.log("💡 Suggestion:", output.suggestionMessage);
+        }
 
-        if (output.count > 0) {
+        if (output.totalFound > 0) {
             console.table(output.results.map(r => ({
                 Item: r.item_name,
                 Price: r.unit_price,

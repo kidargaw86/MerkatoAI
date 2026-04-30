@@ -6,6 +6,7 @@ import { ProcessInventoryUpload } from "../domain/useCases/processInventoryUploa
 import { NotifyBuyer } from "../domain/useCases/notifyBuyer.js";
 import { CheckWishlists } from "../domain/useCases/checkWishlists.js";
 import { HandleBuyerQuery } from "../domain/useCases/handleBuyerQuery.js";
+import { AddToWishlist } from "../domain/useCases/addToWishlist.js";
 
 // 1. Initialize Infrastructure (Adapters)
 const aiService = new GeminiAdapter(process.env.GEMINI_API_KEY);
@@ -18,13 +19,16 @@ const processInventoryUpload = new ProcessInventoryUpload(inventoryRepo, aiServi
 const notifyBuyer = new NotifyBuyer(messagingService);
 const checkWishlists = new CheckWishlists(wishlistRepo, inventoryRepo, notifyBuyer);
 const handleBuyerQuery = new HandleBuyerQuery(aiService, inventoryRepo);
+const addToWishlist = new AddToWishlist(wishlistRepo);
 // 3. Export as a single object
 export const container = {
   aiService,
   messagingService,
   inventoryRepo,
+  wishlistRepo,
   processInventoryUpload,
   notifyBuyer,
   checkWishlists,
   handleBuyerQuery,
+  addToWishlist,
 };

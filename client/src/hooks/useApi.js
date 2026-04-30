@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { apiClient } from "../services/api";
+import api from "../services/api.js";
 
 export default function useApi() {
-  return useMemo(() => apiClient, []);
+  return useMemo(() => api, []);
 }

@@ -5,16 +5,25 @@ export class GeminiAdapter extends IAIService {
   constructor(apiKey) {
     super();
     this.genAI = new GoogleGenerativeAI(apiKey);
-    // Use a stable model id; "-latest" aliases may not exist on all API versions.
+    // Prefer env-configured model; fallback to a broadly available Flash model.
+    // v1beta: use a model id that exists for generateContent (see https://ai.google.dev/gemini-api/docs/models)
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
     this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: modelName,
       // Force the model to output valid JSON
       generationConfig: { responseMimeType: "application/json" },
     });
   }
 
   async extractInventory(rawInput) {
-    const prompt = `
+    try {
+      const textIn = String(rawInput ?? "").trim();
+      if (!textIn) return { items: [] };
+      if (!process.env.GEMINI_API_KEY?.trim()) {
+        throw new Error("GEMINI_API_KEY is not set.");
+      }
+
+      const prompt = `
       You are a Merkato Inventory Parser. 
       Target Market: Addis Ababa, Ethiopia.
       Languages: Mixed Amharic and English.
@@ -23,7 +32,7 @@ export class GeminiAdapter extends IAIService {
       
       Known Teras: Shema Tera, Minalesh Tera, Somale Tera, Arada Tera, Bomb Tera, Dubai Tera.
       
-      Input Text: "${rawInput}"
+      Input Text: "${textIn.replace(/"/g, '\\"')}"
       
       Output Schema:
       {
@@ -38,12 +47,21 @@ export class GeminiAdapter extends IAIService {
       }
     `;
 
-    try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      return JSON.parse(response.text());
+      const text = response.text().trim();
+      const normalized = text.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(normalized);
+      } catch {
+        throw new Error("Model returned non-JSON response.");
+      }
+      if (!parsed || !Array.isArray(parsed.items)) {
+        throw new Error("Model returned unexpected schema (missing items array).");
+      }
+      return parsed;
     } catch (error) {
-      // In Clean Arch, we wrap external errors in our own domain-friendly errors
       throw new Error(`Gemini Extraction Error: ${error.message}`);
     }
   }
@@ -65,7 +83,9 @@ export class GeminiAdapter extends IAIService {
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      return JSON.parse(response.text());
+      const text = response.text().trim();
+      const normalized = text.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+      return JSON.parse(normalized);
     } catch (error) {
       throw new Error(`Gemini Intent Parsing Error: ${error.message}`);
     }

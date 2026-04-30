@@ -6,6 +6,35 @@ export class SupabaseWishlistRepo extends IWishlistRepository {
     this.supabase = supabaseClient;
   }
 
+  async findByBuyerId(buyerId) {
+    const { data, error } = await this.supabase
+      .from("wishlists")
+      .select("*")
+      .eq("buyer_id", String(buyerId))
+      .eq("is_active", true)
+      .order("id", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async findMatches(inventoryItem) {
+    let query = this.supabase
+      .from('wishlists')
+      .select('*')
+      .eq('is_active', true)
+      .is('last_notified_at', null)
+      .ilike('item_name', `%${inventoryItem.item_name}%`);
+
+    if (inventoryItem.unit_price) {
+      query = query.gte('max_price', inventoryItem.unit_price);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
   async findAllActive() {
     const { data, error } = await this.supabase
       .from('wishlists')

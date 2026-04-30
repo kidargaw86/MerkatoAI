@@ -2,19 +2,24 @@
     "name": "merkato-ai",
     "version": "1.0.0",
     "private": true,
-  "engines": {
-    "node": ">=20 <21"
-  },
+    "engines": {
+        "node": ">=20 <21"
+    },
     "description": "MerkatoAI - Wholesale Inventory Concierge",
     "scripts": {
-      "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-      "dev:server": "cd server && npm run dev",
-      "dev:client": "cd client && npm start",
-      "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-      "build": "cd client && npm run build",
-      "start": "cd server && npm start"
+        "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+        "dev:server": "cd server && npm run dev",
+        "dev:client": "cd client && npm start",
+        "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+        "build": "cd client && npm run build",
+        "start": "concurrently -n server,client \"npm run start:server\" \"npm run start:client\"",
+        "start:server": "cd server && npm start",
+        "start:client": "cd client && npm start"
     },
     "devDependencies": {
-      "concurrently": "^8.2.2"
+        "concurrently": "^8.2.2"
+    },
+    "dependencies": {
+        "telegraf": "^4.16.3"
     }
-  }
+}

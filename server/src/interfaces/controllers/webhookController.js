@@ -8,10 +8,8 @@ export const handleTelegramWebhook = async (req, res, next) => {
     const rawText = message.text;
     const buyerId = message.chat.id.toString();
 
-    // Trigger Use Case
-    const response = await container.handleBuyerQuery.execute(rawText, buyerId);
+    const response = await container.handleBuyerQuery.execute(rawText);
 
-    // Format the message for Telegram
     let replyText = "";
     if (response.results.length > 0) {
       replyText = `✅ Found ${response.totalFound} matches for "${response.intent.product}":\n\n`;
@@ -20,7 +18,9 @@ export const handleTelegramWebhook = async (req, res, next) => {
         replyText += `💰 ${item.unit_price} ETB | 📦 Stock: ${item.quantity}\n\n`;
       });
     } else {
-      replyText = `❌ Sorry, I couldn't find any "${response.intent.product}" matching your request right now. Would you like to add it to your /wishlist?`;
+      replyText =
+        response.suggestionMessage ||
+        `❌ Sorry, I couldn't find any "${response.intent.product}" matching your request right now. Would you like to add it to your /wishlist?`;
     }
 
     // Call Messaging Port to send the message back (Adapter will be implemented next)
