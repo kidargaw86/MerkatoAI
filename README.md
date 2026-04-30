@@ -18,6 +18,47 @@ It helps wholesalers digitize inventory notes with Gemini, and helps buyers sear
 - `server/` - API, Telegram bot, use cases, repositories
 - `package.json` (root) - combined scripts for running both apps
 
+## Architecture
+
+### Frontend Architecture (`client/`)
+
+The frontend follows a component + hook separation:
+
+- **UI components** (`src/components/`) render pages and widgets (dashboard cards, inventory upload/list, wishlist view).
+- **Hooks** (`src/hooks/`) own async state and data-fetching logic (`useDashboardStats`, `useInventoryList`, etc.).
+- **API layer** (`src/services/api.js`) centralizes all HTTP calls to backend routes.
+
+Flow (inventory upload):
+
+1. User enters raw text in `InventoryUpload`.
+2. Component calls `inventoryService.extractInventory()`.
+3. User confirms preview rows.
+4. Component calls `inventoryService.saveInventory()` with `REACT_APP_WHOLESALER_ID`.
+5. Inventory list and stats refresh through hooks.
+
+### Backend Architecture (`server/`)
+
+The backend is organized in clean-architecture style layers:
+
+- **Interfaces layer** (`src/interfaces/`): HTTP routes/controllers + Telegram bot handlers.
+- **Domain layer** (`src/domain/`): use cases and ports (`HandleBuyerQuery`, `ProcessInventoryUpload`, `AddToWishlist`, etc.).
+- **Infrastructure layer** (`src/infrastructure/`): external adapters (Gemini, Supabase, Telegram messaging).
+- **Config/composition** (`src/config/container.js`): dependency wiring for all use cases.
+
+Request flow (HTTP inventory extraction):
+
+1. `POST /api/inventory/extract` reaches `inventoryRoutes`.
+2. Controller calls `container.aiService.extractInventory()`.
+3. `GeminiAdapter` calls Gemini and returns structured JSON.
+4. Response is returned to client for preview.
+
+Request flow (Telegram buyer search):
+
+1. Message enters `interfaces/telegram/bot.js`.
+2. Bot calls `handleBuyerQuery.execute()`.
+3. Use case parses intent through AI and searches inventory repository.
+4. Bot replies with matches; if none, it saves wishlist via `addToWishlist`.
+
 ## Prerequisites
 
 - Node.js `>=20 <21`
